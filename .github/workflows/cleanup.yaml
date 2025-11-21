@@ -1,0 +1,56 @@
+name: Daily Repository Cleanup
+
+on:
+  schedule:
+    # 定时任务：每天 20:00 (UTC) 执行
+    # 也就是北京时间每天 04:00 运行
+    - cron: '0 20 * * *'
+
+  # 可手动触发，方便测试
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    # 允许工作流推送更改
+    permissions:
+      contents: write
+
+    steps:
+      - name: 1. 签出 (Checkout) 仓库代码
+        uses: actions/checkout@v4
+
+      - name: 2. 配置 Git 用户
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: 3. 执行清理操作（⚠️请谨慎）
+        run: |
+          echo "开始清理文件..."
+          # 启用 extglob 支持 !(...) 模式
+          shopt -s extglob
+          # 如果想同时匹配删除隐藏文件（例如 .env、.DS_Store），请取消下一行注释（危险）
+          # shopt -s dotglob
+
+          # 删除除 README.md、.git、.github、workflows 外的所有内容
+          rm -rf !(README.md|.git|.github|.github/workflows)  # 删除其他文件夹和文件
+          rm -rf .github/*  # 删除 .github 目录下的所有内容（包括文件夹和文件）
+
+
+          echo "✅ 清理完成"
+
+      - name: 4. 提交并推送变更
+        run: |
+          # 暂存所有修改（包括删除）
+          git add -A
+
+          # 检查是否有已暂存变更
+          if git diff --staged --quiet; then
+            echo "📁 仓库已是干净状态，无需提交"
+          else
+            echo "📝 检测到变更，准备提交并推送..."
+            git commit -m "chore: 每日自动清理仓库文件" || echo "⚠️ 没有可提交的改动或提交失败"
+            git push || echo "⚠️ 推送失败，可能因分支保护或权限限制"
+          fi
