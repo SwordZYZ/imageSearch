@@ -26,19 +26,21 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
-      - name: 3. 执行清理操作（⚠️请谨慎）
+      - name: 3. 执行清理操作
         run: |
           echo "开始清理文件..."
-          # 启用 extglob 支持 !(...) 模式
+          # 启用 extglob
           shopt -s extglob
-          # 如果想同时匹配删除隐藏文件（例如 .env、.DS_Store），请取消下一行注释（危险）
-          # shopt -s dotglob
-
-          # 只保留 README.md, .git (版本控制), .github (Action 脚本)
+          
+          # 显式列出要保留的文件/目录
+          # 这样写比一行长命令更容易维护
+          # 只保留 forLLM, README.md, .git (版本控制), .github (Action 脚本)
           # 不要去手动删 .github 下面的东西，否则脚本会自杀
-          rm -rf !(README.md|.git|.github)
-
-
+          KEEP_FILES="forLLM|README.md|.git|.github"
+          
+          # 执行删除
+          rm -rf !($KEEP_FILES)
+          
           echo "✅ 清理完成"
 
       - name: 4. 提交并推送变更
